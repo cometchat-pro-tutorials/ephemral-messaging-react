@@ -5,7 +5,7 @@ In this app, we're going to build a chat app that destroys messages after anothe
 ### Screenshots
 
 ![Login Page](screenshots/login.png)
-![Chat Page](screenshots/chat.jpg)
+![Chat Page](screenshots/chat.png)
 
 ### Technologies
 
