@@ -4,7 +4,7 @@ In this app, we're going to build a chat app that destroys messages after anothe
 
 ### Screenshots
 
-![Login Page](screenshots/login.jpg)
+![Login Page](screenshots/login.png)
 ![Chat Page](screenshots/chat.jpg)
 
 ### Technologies
@@ -33,7 +33,7 @@ REACT_APP_API_KEY=YOUR_APIKEY
 
 7. `cd` into the newly created folder and run `npm install` to install dependencies.
 8. Run `npm start` and wait for the development server to start.
-9. Open your browser on `http://localhost:3000` to see the app.
+9. Open the page `http://localhost:3000` on two different browsers to see the app.
 10. Use any of the default usernames **SUPERHERO1**, **SUPERHERO2**, **SUPERHERO3**, **SUPERHERO4**, **SUPERHERO5** to login and start chatting or optionally sign up with a new account.
 
 ### Useful Links
