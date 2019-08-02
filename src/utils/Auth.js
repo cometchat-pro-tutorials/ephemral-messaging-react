@@ -35,15 +35,6 @@ export async function sendTextMessage(messageText) {
   return await CometChat.sendMessage(textMessage);
 }
 
-export async function sendCustomMessage(customData) {
-  const customMessage = new CometChat.CustomMessage(
-    'supergroup',
-    CometChat.RECEIVER_TYPE.GROUP,
-    customData
-  );
-  return await CometChat.sendCustomMessage(customMessage);
-}
-
 export async function fetchMessages() {
   const messagesRequest = await new CometChat.MessagesRequestBuilder()
     .setGUID('supergroup')
@@ -51,45 +42,6 @@ export async function fetchMessages() {
     .build();
 
   return messagesRequest.fetchPrevious();
-}
-
-export async function createUser(uid, name, email) {
-  const response = await fetch('https://api.cometchat.com/v1/users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      appid: process.env.REACT_APP_APP_ID,
-      apikey: process.env.REACT_APP_API_KEY
-    },
-    body: JSON.stringify({
-      uid,
-      name,
-      email
-    })
-  });
-
-  const json = await response.json();
-  return json;
-}
-
-export async function getGroupMembers() {
-  const GUID = 'supergroup';
-  const limit = 100;
-  const groupMemberRequest = await new CometChat.GroupMembersRequestBuilder(
-    GUID
-  )
-    .setLimit(limit)
-    .build();
-
-  return await groupMemberRequest.fetchNext();
-}
-
-export async function joinGroup() {
-  return await CometChat.joinGroup(
-    'supergroup',
-    CometChat.GROUP_TYPE.PUBLIC,
-    ''
-  );
 }
 
 export async function logoutUser() {

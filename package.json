@@ -1,5 +1,5 @@
 {
-  "name": "react-self-destruct-chat",
+  "name": "react-ephemeral-chat",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

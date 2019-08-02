@@ -5,10 +5,7 @@ import {
   clearToken,
   getCurrentUser,
   getToken,
-  joinGroup,
   sendTextMessage,
-  sendCustomMessage,
-  getGroupMembers,
   loginUserWithToken
 } from '../utils/Auth';
 
@@ -17,13 +14,19 @@ import { CometChat } from '@cometchat-pro/chat';
 function Home() {
   const [isRedirected, setRedirected] = useState(false);
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
-  const [delay, setDelay] = useState(0);
   const [isSending, setSending] = useState(false);
+  const [isDeleted, setDeleted] = useState(false);
 
   const authToken = getToken('cometchat:token');
+  const mainRef = useRef();
+
+  const scrollToBottom = () => {
+    if (mainRef.current !== null) {
+      mainRef.current.scrollTo(0, mainRef.current.scrollHeight);
+    }
+  };
 
   useEffect(() => {
     if (authToken !== null) {
@@ -38,38 +41,11 @@ function Home() {
     }
   }, [authToken]);
 
-  const statusRef = useRef();
-
   useEffect(() => {
     // get current user
     getCurrentUser().then(
       user => {
         setUser(user);
-        statusRef.current = 'Joining supergroup...';
-        setStatus(statusRef.current);
-
-        getGroupMembers().then(
-          groupMembers => {
-            const member = groupMembers.filter(m => m.uid === user.uid);
-            if (member.length === 0) {
-              joinGroup().then(
-                group => {
-                  statusRef.current = 'Successfully joined supergroup';
-                  setStatus(statusRef.current);
-                },
-                error => {
-                  console.log({ error });
-                }
-              );
-            } else {
-              statusRef.current = 'Already Joined supergroup';
-              setStatus(statusRef.current);
-            }
-          },
-          err => {
-            console.log({ err });
-          }
-        );
       },
       error => {
         console.log({ error });
@@ -78,17 +54,14 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    // fetch messages
-    statusRef.current = 'Fetching Messages...';
+    // fetch last 100 messages
     fetchMessages().then(
       msgs => {
         setMessages(msgs);
-        statusRef.current = 'Fetched messages...';
-        setStatus(statusRef.current);
+        scrollToBottom();
       },
       error => {
-        statusRef.current = 'Failed to fetch messages...';
-        setStatus(statusRef.current);
+        console.log({ error });
       }
     );
   }, []);
@@ -102,68 +75,55 @@ function Home() {
       new CometChat.MessageListener({
         onTextMessageReceived: textMessage => {
           setMessages([...messages, textMessage]);
-        },
-        onCustomMessageReceived: customMessage => {
-          setMessages([...messages, customMessage]);
+          scrollToBottom();
         },
         onMessageDeleted: deletedMessage => {
           const filtered = messages.filter(m => m.id !== deletedMessage.id);
           setMessages([...filtered]);
+          scrollToBottom();
         },
-        onMessageDelivered: messageReceipt => {
-          // console.log(messageReceipt)
-          if (delay !== 0) {
+        onMessageDelivered: ({ RECEIPT_TYPE, messageId }) => {
+          if (RECEIPT_TYPE.READ_RECEIPT === 'read') {
             setTimeout(() => {
-              CometChat.deleteMessage(messageReceipt.messageId).then(
-                msg => {
-                  const filtered = messages.filter(
-                    m =>
-                      m.id !== messageReceipt.messageId &&
-                      m.action !== 'deleted'
-                  );
-                  setMessages([...filtered]);
-                },
-                err => {}
-              );
-            }, delay);
+              if (!isDeleted) {
+                CometChat.deleteMessage(messageId).then(
+                  msg => {
+                    const filtered = messages.filter(
+                      m => m.id !== messageId && m.action !== 'deleted'
+                    );
+                    setMessages([...filtered]);
+                    scrollToBottom();
+                    setDeleted(true);
+                  },
+                  err => {}
+                );
+              }
+            }, 5000);
           }
         }
       })
     );
 
     return () => CometChat.removeMessageListener(listenerID);
-  }, [messages, delay]);
+  }, [messages, isDeleted]);
 
   const handleSendMessage = e => {
     e.preventDefault();
 
+    const newMessage = message;
     setSending(true);
+    setMessage('');
 
-    if (delay === 0) {
-      sendTextMessage(message).then(
-        msg => {
-          setMessage('');
-          setSending(false);
-          setMessages([...messages, msg]);
-        },
-        error => {
-          setSending(false);
-          console.log({ error });
-        }
-      );
-    } else {
-      sendCustomMessage({ text: message, delay }).then(
-        msg => {
-          setMessage('');
-          setSending(false);
-          setMessages([...messages, msg]);
-        },
-        err => {
-          setSending(false);
-          console.log({ err });
-        }
-      );
-    }
+    sendTextMessage(newMessage).then(
+      msg => {
+        setSending(false);
+        setMessages([...messages, msg]);
+      },
+      error => {
+        setSending(false);
+        console.log({ error });
+      }
+    );
   };
 
   const handleLogout = () => {
@@ -189,9 +149,6 @@ function Home() {
           <nav className='navbar navbar-dark bg-dark'>
             <span className='navbar-brand mb-0 h1 d-block'>
               {user !== null && user.name}
-              <small className='d-block' style={{ fontSize: '0.8rem' }}>
-                {status}
-              </small>
             </span>
             <button onClick={handleLogout} className='btn btn-light ml-auto'>
               Logout
@@ -199,6 +156,7 @@ function Home() {
           </nav>
         </header>
         <main
+          ref={mainRef}
           style={{
             flex: '1',
             overflowY: 'scroll',
@@ -212,7 +170,7 @@ function Home() {
             <ul className='list-group text-dark w-100'>
               {messages
                 .filter(msg => !msg.action)
-                .filter(msg => !msg.deletedAt)
+                .filter(msg => !msg.deletedBy)
                 .map((msg, i) =>
                   msg.sender.uid === user.uid ? (
                     <li
@@ -279,21 +237,6 @@ function Home() {
               width: '100%'
             }}
           >
-            <div
-              className='form-group'
-              style={{ width: '70px', marginRight: '0.5rem' }}
-            >
-              <select
-                name='delay'
-                className='form-control'
-                id='delay'
-                onChange={e => setDelay(parseInt(e.target.value))}
-              >
-                <option value='0'>Destruct In</option>
-                <option value='5000'>5 Seconds</option>
-                <option value='10000'>10 Seconds</option>
-              </select>
-            </div>
             <div className='form-group' style={{ flex: '1' }}>
               <input
                 type='text'
@@ -305,7 +248,7 @@ function Home() {
             </div>
             <input
               style={{
-                width: '70px',
+                width: '80px',
                 marginLeft: '0.5rem',
                 marginTop: '-1rem'
               }}

@@ -1,48 +1,47 @@
-import React, { useState } from 'react';
-import { Link, Redirect } from 'react-router-dom';
-import { loginUser, setToken } from '../utils/Auth';
+import React, { useState, useEffect, useRef } from 'react'
+import { Redirect } from 'react-router-dom'
+import { loginUser, setToken } from '../utils/Auth'
 
 function Login() {
-  const [username, setUsername] = useState('');
-  const [error, setError] = useState(null);
-  const [isSubmitting, setSubmitting] = useState(false);
-  const [isRedirected, setRedirected] = useState(false);
-  const [authToken, setAuthToken] = useState(null);
+  const [username, setUsername] = useState('')
+  const [error, setError] = useState(null)
+  const [isSubmitting, setSubmitting] = useState(false)
+  const [isRedirected, setRedirected] = useState(false)
+  const isMountedRef = useRef(false)
+
+  useEffect(() => {
+    isMountedRef.current = true
+
+    return () => (isMountedRef.current = false)
+  }, [])
+
   const handleChange = e => {
-    setUsername(e.target.value);
-  };
+    setUsername(e.target.value)
+  }
 
   const handleSubmit = e => {
-    e.preventDefault();
+    e.preventDefault()
 
-    setSubmitting(true);
-    setError(null);
+    setSubmitting(true)
+    setError(null)
 
-    // login user
-    loginUser(username)
-      .then(({ authToken }) => {
-        setSubmitting(false);
-        setToken('cometchat:token', authToken);
-        setAuthToken(authToken);
-        setRedirected(true);
-      })
-      .catch(({ code }) => {
-        if (code === 'ERR_UID_NOT_FOUND') {
-          setError('User not found, try creating an account');
-        }
-        setSubmitting(false);
-      });
-  };
+    if (isMountedRef.current === true) {
+      loginUser(username)
+        .then(({ authToken }) => {
+          setSubmitting(false)
+          setToken('cometchat:token', authToken)
+          setRedirected(true)
+        })
+        .catch(({ code }) => {
+          if (code === 'ERR_UID_NOT_FOUND') {
+            setError('User not found, try creating an account')
+          }
+          setSubmitting(false)
+        })
+    }
+  }
 
-  if (isRedirected)
-    return (
-      <Redirect
-        to={{
-          pathname: '/',
-          authToken: authToken
-        }}
-      />
-    );
+  if (isRedirected) return <Redirect to='/' />
 
   return (
     <div className='container text-white'>
@@ -79,7 +78,7 @@ function Login() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login
