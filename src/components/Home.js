@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Redirect } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Redirect } from 'react-router-dom'
 import {
   fetchMessages,
   clearToken,
@@ -7,131 +7,134 @@ import {
   getToken,
   sendTextMessage,
   loginUserWithToken
-} from '../utils/Auth';
+} from '../utils/Auth'
 
-import { CometChat } from '@cometchat-pro/chat';
+import { CometChat } from '@cometchat-pro/chat'
 
 function Home() {
-  const [isRedirected, setRedirected] = useState(false);
-  const [user, setUser] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
-  const [isSending, setSending] = useState(false);
-  const [isDeleted, setDeleted] = useState(false);
+  const [isRedirected, setRedirected] = useState(false)
+  const [user, setUser] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [message, setMessage] = useState('')
+  const [isSending, setSending] = useState(false)
 
-  const authToken = getToken('cometchat:token');
-  const mainRef = useRef();
+  const authToken = getToken('cometchat:token')
+  const mainRef = useRef()
 
   const scrollToBottom = () => {
-    if (mainRef.current !== null) {
-      mainRef.current.scrollTo(0, mainRef.current.scrollHeight);
+    if (mainRef.current) {
+      mainRef.current.scrollTo(0, mainRef.current.scrollHeight)
     }
-  };
+  }
 
   useEffect(() => {
     if (authToken !== null) {
       loginUserWithToken(authToken).then(
         user => {
-          setUser(user);
+          setUser(user)
         },
         err => {
-          console.log({ err });
+          console.log({ err })
         }
-      );
+      )
     }
-  }, [authToken]);
+  }, [authToken])
 
   useEffect(() => {
     // get current user
     getCurrentUser().then(
       user => {
-        setUser(user);
+        setUser(user)
       },
       error => {
-        console.log({ error });
+        console.log({ error })
       }
-    );
-  }, []);
+    )
+  }, [])
 
   useEffect(() => {
     // fetch last 100 messages
     fetchMessages().then(
       msgs => {
-        setMessages(msgs);
-        scrollToBottom();
+        setMessages(msgs)
+        scrollToBottom()
+        msgs
+          .filter(m => m.data.text !== undefined)
+          .forEach(m => CometChat.markMessageAsRead(m))
       },
       error => {
-        console.log({ error });
+        console.log({ error })
       }
-    );
-  }, []);
+    )
+  }, [user])
 
   useEffect(() => {
     // receive messages
-    const listenerID = 'supergroup';
+    const listenerID = 'supergroup'
 
     CometChat.addMessageListener(
       listenerID,
       new CometChat.MessageListener({
         onTextMessageReceived: textMessage => {
-          setMessages([...messages, textMessage]);
-          scrollToBottom();
+          setMessages([...messages, textMessage])
+          CometChat.markMessageAsRead(textMessage)
+          scrollToBottom()
         },
         onMessageDeleted: deletedMessage => {
-          const filtered = messages.filter(m => m.id !== deletedMessage.id);
-          setMessages([...filtered]);
-          scrollToBottom();
+          const filtered = messages.filter(m => m.id !== deletedMessage.id)
+          setMessages([...filtered])
+          scrollToBottom()
         },
-        onMessageDelivered: ({ RECEIPT_TYPE, messageId }) => {
-          if (RECEIPT_TYPE.READ_RECEIPT === 'read') {
-            setTimeout(() => {
-              if (!isDeleted) {
-                CometChat.deleteMessage(messageId).then(
-                  msg => {
-                    const filtered = messages.filter(
-                      m => m.id !== messageId && m.action !== 'deleted'
-                    );
-                    setMessages([...filtered]);
-                    scrollToBottom();
-                    setDeleted(true);
-                  },
-                  err => {}
-                );
-              }
-            }, 5000);
-          }
+
+        onMessageRead: messageReceipt => {
+          setTimeout(() => {
+            CometChat.deleteMessage(messageReceipt.messageId).then(
+              msg => {
+                const filtered = messages.filter(
+                  m => m.id !== messageReceipt.messageId && m.id !== msg.id
+                )
+                setMessages(filtered)
+                scrollToBottom()
+              },
+              err => {}
+            )
+          }, 5000)
         }
       })
-    );
+    )
 
-    return () => CometChat.removeMessageListener(listenerID);
-  }, [messages, isDeleted]);
+    return () => CometChat.removeMessageListener(listenerID)
+  }, [messages, user])
 
   const handleSendMessage = e => {
-    e.preventDefault();
+    e.preventDefault()
 
-    const newMessage = message;
-    setSending(true);
-    setMessage('');
+    const newMessage = message
+    setSending(true)
+    setMessage('')
 
     sendTextMessage(newMessage).then(
       msg => {
-        setSending(false);
-        setMessages([...messages, msg]);
+        setSending(false)
+        setMessages([...messages, msg])
       },
       error => {
-        setSending(false);
-        console.log({ error });
+        setSending(false)
+        console.log({ error })
       }
-    );
-  };
+    )
+  }
 
   const handleLogout = () => {
-    clearToken('cometchat:token');
-    setRedirected(true);
-  };
+    clearToken('cometchat:token')
+    setRedirected(true)
+  }
 
-  if (authToken === null || isRedirected) return <Redirect to='/login' />;
+  const handleChange = useCallback(e => {
+    setMessage(e.target.value)
+  }, [])
+
+  if (authToken === null || isRedirected) return <Redirect to='/login' />
 
   return (
     <div className='container text-white' style={{ height: '100vh' }}>
@@ -161,7 +164,7 @@ function Home() {
             flex: '1',
             overflowY: 'scroll',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center'
           }}
           className='p-4 chatscreen'
@@ -169,8 +172,7 @@ function Home() {
           {messages.length > 0 ? (
             <ul className='list-group text-dark w-100'>
               {messages
-                .filter(msg => !msg.action)
-                .filter(msg => !msg.deletedBy)
+                .filter(msg => !msg.action && !msg.deletedBy)
                 .map((msg, i) =>
                   msg.sender.uid === user.uid ? (
                     <li
@@ -224,7 +226,9 @@ function Home() {
                 )}
             </ul>
           ) : (
-            <p className='lead'>Fetching Messages ...</p>
+            <p className='lead' style={{ alignSelf: 'center' }}>
+              Fetching Messages ...
+            </p>
           )}
         </main>
         <footer className='pt-3'>
@@ -243,7 +247,7 @@ function Home() {
                 placeholder='Type to start chatting...'
                 className='form-control form-control'
                 value={message}
-                onChange={e => setMessage(e.target.value)}
+                onChange={handleChange}
               />
             </div>
             <input
@@ -261,7 +265,7 @@ function Home() {
         </footer>
       </div>
     </div>
-  );
+  )
 }
 
-export default Home;
+export default Home

@@ -24,14 +24,14 @@ In order to run the demo application locally, you'll need to follow the followin
 3. Go to the **API Keys** tab and you should see an already generated **App ID** and **API Key**
 4. Copy the details from the list with **Full Access** as Scope.
 5. Clone the repository by running `git clone https://github.com/cometchat-pro-tutorials/ephemral-messaging-react` in the terminal and open it with the code editor of your choice.
-6. Create a `.env` file with the following details.
+6. `cd` into the newly created folder and run `npm install` to install dependencies.
+7. Create a `.env` file at the root of the folder with the following snippet.
 
 ```
 REACT_APP_APP_ID=YOUR_APP_ID
 REACT_APP_API_KEY=YOUR_APIKEY
 ```
 
-7. `cd` into the newly created folder and run `npm install` to install dependencies.
 8. Run `npm start` and wait for the development server to start.
 9. Open the page `http://localhost:3000` on two different browsers to see the app.
 10. Use any of the default usernames **SUPERHERO1**, **SUPERHERO2**, **SUPERHERO3**, **SUPERHERO4**, **SUPERHERO5** to login and start chatting.

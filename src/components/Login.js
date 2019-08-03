@@ -7,12 +7,12 @@ function Login() {
   const [error, setError] = useState(null)
   const [isSubmitting, setSubmitting] = useState(false)
   const [isRedirected, setRedirected] = useState(false)
-  const isMountedRef = useRef(false)
+  const isMounted = useRef(false)
 
   useEffect(() => {
-    isMountedRef.current = true
+    isMounted.current = true
 
-    return () => (isMountedRef.current = false)
+    return () => (isMounted.current = false)
   }, [])
 
   const handleChange = e => {
@@ -25,20 +25,22 @@ function Login() {
     setSubmitting(true)
     setError(null)
 
-    if (isMountedRef.current === true) {
-      loginUser(username)
-        .then(({ authToken }) => {
+    loginUser(username)
+      .then(({ authToken }) => {
+        if (isMounted.current === true) {
           setSubmitting(false)
           setToken('cometchat:token', authToken)
           setRedirected(true)
-        })
-        .catch(({ code }) => {
+        }
+      })
+      .catch(({ code }) => {
+        if (isMounted.current === true) {
           if (code === 'ERR_UID_NOT_FOUND') {
             setError('User not found, try creating an account')
           }
           setSubmitting(false)
-        })
-    }
+        }
+      })
   }
 
   if (isRedirected) return <Redirect to='/' />
