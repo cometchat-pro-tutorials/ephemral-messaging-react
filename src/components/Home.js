@@ -58,15 +58,15 @@ function Home() {
       msgs => {
         setMessages(msgs)
         scrollToBottom()
-        msgs
-          .filter(m => m.data.text !== undefined)
-          .forEach(m => CometChat.markMessageAsRead(m))
+        msgs.forEach(
+          m => m.data.text !== undefined && CometChat.markMessageAsRead(m)
+        )
       },
       error => {
         console.log({ error })
       }
     )
-  }, [user])
+  }, [])
 
   useEffect(() => {
     // receive messages
@@ -91,9 +91,10 @@ function Home() {
             CometChat.deleteMessage(messageReceipt.messageId).then(
               msg => {
                 const filtered = messages.filter(
-                  m => m.id !== messageReceipt.messageId && m.id !== msg.id
+                  m =>
+                    m.id !== messageReceipt.messageId && m.action === 'deleted'
                 )
-                setMessages(filtered)
+                setMessages([...filtered])
                 scrollToBottom()
               },
               err => {}
