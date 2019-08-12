@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Redirect } from 'react-router-dom'
-import { loginUser, setToken } from '../utils/Auth'
+import { loginUser, setToken } from '../utils/CometChat'
 
 function Login() {
   const [username, setUsername] = useState('')
